@@ -14,7 +14,7 @@ export const createExtension = async (req: Request, res: Response) => {
     const file = req.file;
     const { name, description, isActive } = req.body as Omit<Extension, "logo">;
 
-    if (!file) return res.status(400).json({ error: "Fayl tapılmadı" });
+    if (!file) return res.status(400).json({ error: "Don't found file" });
 
     const buffer = file.buffer;
 
@@ -32,7 +32,7 @@ export const createExtension = async (req: Request, res: Response) => {
 
     if (!name || !description) {
       return res.status(400).json({
-        message: "Name və description boş ola bilməz",
+        message: "Name and description cannot be empty",
       });
     }
 
@@ -48,7 +48,7 @@ export const createExtension = async (req: Request, res: Response) => {
     return res.status(201).json(extension);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server xətası baş verdi" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -59,14 +59,20 @@ export const getExtension = async (req: Request, res: Response) => {
     return res.status(200).json({ message: "All extension", extension });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server xətası baş verdi" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
 export const updateExtension = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { isActive } = req.body;
+    const { name, description, isActive } = req.body as Omit<Extension, "logo">;
+
+    if (!name || !description) {
+      return res
+        .status(400)
+        .json({ message: "Name and description cannot be empty" });
+    }
 
     if (id) {
       const updatedExtension = await prisma.extension.update({
@@ -74,7 +80,9 @@ export const updateExtension = async (req: Request, res: Response) => {
           id: id,
         },
         data: {
-          isActive,
+          name,
+          description,
+          isActive: JSON.parse(isActive) ?? false,
         },
       });
       return res
@@ -83,7 +91,32 @@ export const updateExtension = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server xətası baş verdi" });
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateActiveExtension = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (id) {
+      const updatedExtension = await prisma.extension.update({
+        where: {
+          id,
+        },
+        data: {
+          isActive: JSON.parse(isActive) ?? false,
+        },
+      });
+
+      return res
+        .status(200)
+        .json({ message: "Extension status updated", updatedExtension });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -104,6 +137,6 @@ export const deleteExtension = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Server xətası baş verdi" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
